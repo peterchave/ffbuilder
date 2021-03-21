@@ -286,9 +286,13 @@ function loadpreset() {
     
 function updateencodingres(i, el) {
 	encoding_table[i].res = el.value;
-	
 	draw_encode_table();
 }
+    
+function updateencodingbitrate(i, el) {
+	encoding_table[i].bitrate = el.value;
+	draw_encode_table();
+}    
 
 function draw_encode_table() {
 	var dtable = "<tr><td></td><td>Resolution</td><td>Bitrate</td><td class='perrate'>Overlay</td></tr>";
@@ -302,7 +306,7 @@ function draw_encode_table() {
 			dtable += '<option'+ (encoding_table[i].res==res_table[j]?' selected':'') +'>' + res_table[j] + '</option>';
 		}
 		dtable += '</select></td>';
-		dtable += '<td><input class="sm-edit" type="text" value="'+encoding_table[i].bitrate+'" id="encode_bitrate'+i+'"></td>';
+		dtable += '<td><input onchange="updateencodingbitrate('+i+', this)" class="sm-edit" type="text" value="'+encoding_table[i].bitrate+'" id="encode_bitrate'+i+'"></td>';
         dtable += '<td><input onchange="rebuild_command()" class="perrate" type="text" value="'+encoding_table[i].overlay+'" id="encode_overlay'+i+'"></td>';
 		dtable += '</tr>';
 		
@@ -320,7 +324,7 @@ function encode_delete_row(i)  {
 }
 	
 function encode_add_row() {
-	encoding_table.push({res: '1280x720', bitrate: '3000', overlay: '3M-720p'});
+	encoding_table.push({res: '1280x720', bitrate: '3000', overlay: '720p-3.0M'});
 	draw_encode_table();
 }
 
