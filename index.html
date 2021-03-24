@@ -134,8 +134,8 @@ function inputselected_changed(index) {
                   break;
         case 2  : options = '<label for="sdi_input">Device label</label><input onchange="rebuild_command()" type="text" id="sdi_input" value="DeckLink SDI (1)">';
                   break;
-        case 3 : options = '<label for="avf_input">AV inputs v:a</label><input onchange="rebuild_command()" type="text" id="avf_input" value="0:0">';
-                 break;
+        case 3 :  options = '<label for="avf_input">AV inputs v:a</label><input onchange="rebuild_command()" type="text" id="avf_input" value="0:0">';
+                  break;
         case 4  : options = '<label for="ip_input">IP address</label><input onchange="rebuild_command()" type="text" id="ip_input" value="<IP Address>">' + 
                             '<label for="udp_input">UDP port</label><input onchange="rebuild_command()" class="sm-edit" type="text" id="udp_input" value="<port>">';
                   break;  
@@ -170,8 +170,6 @@ function filter_drawtext(t,x,y,ff,fs,fc) {
            "fontfile="+document.getElementById(ff).value+":"+
            "fontsize="+document.getElementById(fs).value+":fontcolor="+document.getElementById(fc).value;
 }    
-
-// && !document.getElementById('filter_image_id').checked)    
     
 function filter_apply() {    
     // prefilters (all outputs)
@@ -254,8 +252,6 @@ function generate_preview() {
     }
     
 }    
-    
-//         document.getElementById('filter_image_options').style.display == "block"  ||    
 
 function check_preview() {
     if (document.getElementById('filter_banner_options').style.display == "block" ||  
@@ -362,7 +358,8 @@ function encodes_video() {
 }
 	
 function encodes_audio() {
-	return "-c:a:0 aac -ar "+document.getElementById('audiosample_id').value+" -b:a:0 "+document.getElementById('audiobirate_id').value+" \\\n"
+    // One audio to rule them all... change this if supporting multiple audios...
+	return "-c:a aac -ar "+document.getElementById('audiosample_id').value+" -b:a "+document.getElementById('audiobirate_id').value+" \\\n"
 }	
     
 // OPTIMIZATIONS
@@ -395,12 +392,16 @@ function update_hls_ep() {
 
 function write_opt(key, value, t) {
     if (t) {
-        // Escape characters $ and :
-        /*value = value.replace('$','\\\$');
-        value = value.replace(':','\\\:');*/
+        // Escape characters $ and : in tee muxer output...
+        value = value.replaceAll('$','\\\$');
+        // $timestamp must not be escaped...
+        value = value.replaceAll('\\\$timestamp','$timestamp');
+        value = value.replaceAll(':','\\\:');
         return ':'+key+'='+value+'\\\n';
     }
-    else return '-'+key+' '+value+' \\\n'
+    else {
+        return '-'+key+' '+value+' \\\n'
+    }
 }
     
 function output_lhls() {
@@ -421,6 +422,11 @@ function output_cmaf(tee) {
     var segduration = output_get_segduration();
     
     if (tee) { data += "[f=dash\\\n" }
+    
+    // If in HLS muxed mode...
+    if (in_hlsmuxed_mode()) { 
+        data += ":select=\\\'v,a:0\\\'\\\n" 
+    }
         
     data += write_opt('adaptation_sets','\'id=0,seg_duration='+segduration+',streams=v id=1,seg_duration='+segduration+',streams=a\'',tee);
     data += write_opt('use_timeline','0',tee);
@@ -432,9 +438,9 @@ function output_cmaf(tee) {
         data += write_opt('frag_type','every_frame',tee);
         data += write_opt('ldash','1',tee);
         
-        data += write_opt('utc_timing_url','\'http'+(tee?'\\\:':':')+'//time.akamai.com?iso&amp;ms\'',tee);
+        data += write_opt('utc_timing_url','\'http://time.akamai.com?iso&amp;ms\'',tee);
         data += write_opt('format_options','\'movflags=cmaf\'',tee);    
-        data += write_opt('export_side_data','prft',tee);
+        //data += write_opt('export_side_data','prft',tee); // Not supported in 4.3.2 on Mac. Is supported from source in Ubuntu?
         data += write_opt('write_prft','1',tee);
         data += write_opt('target_latency','\'3.0\'',tee);
     }
@@ -448,15 +454,11 @@ function output_cmaf(tee) {
             //data += write_opt('hls_master_name','master.m3u8',tee);
     }
 
-    if (tee) {
-        data += write_opt('media_seg_name','$timestamp'+'\'/chunk-stream_\\\$RepresentationID\\\$-\\\$Number%05d\\\$.\\\$ext\\\$\'',tee);
-        data += write_opt('init_seg_name','$timestamp'+'\'/init-stream_\\\$RepresentationID\\\$.\\\$ext\\\$\'',tee);   
-        data += ']';
-    } else {
-        data += write_opt('media_seg_name','\"$timestamp\"'+'\'/chunk-stream_$RepresentationID$-$Number%05d$.$ext$\'',tee);
-        data += write_opt('init_seg_name','\"$timestamp\"'+'\'/init-stream_$RepresentationID$.$ext$\'',tee); 
-        data += "-f dash \\\n"
-    }
+    data += write_opt('media_seg_name','$timestamp'+'\'/chunk-stream_$RepresentationID$-$Number%05d$.$ext$\'',tee);
+    data += write_opt('init_seg_name','$timestamp'+'\'/init-stream_$RepresentationID$.$ext$\'',tee); 
+    
+    if (tee) {  data += ']';            } 
+    else     {  data += "-f dash \\\n"  }
     
     data += document.getElementById('cmaf_stream_ep').value;
     
@@ -470,6 +472,7 @@ function output_hls(tee) {
     if (tee) { 
         if (document.getElementById('cmafoutput_id').checked) { data += "|\\\n" }
         data += "[f=hls\\\n" 
+        data += ":use_fifo=1\\\n"   // Workaround for HLS muxer when combined with other outputs, put it in seperate thread 
     }
     
     data += write_opt('hls_init_time',segduration,tee);
@@ -480,16 +483,29 @@ function output_hls(tee) {
         
     data += write_opt('hls_base_url','$timestamp/',tee);
 
+    var ext = "ts";
     if ((document.getElementById('hls_package_type').selectedIndex)==0) {
         data += write_opt('hls_segment_type','fmp4',tee);
+        ext = "m4s";
     }
     
-    data += write_opt('hls_segment_filename','\'http' + (tee?'\\\:':':') +
-                                             '//p-ep'+document.getElementById('hls_stream_id').value +     
+    var var_map = '\'';
+    if (in_hlsmuxed_mode()) {
+        var_map += 'v:0,a:0';
+        for (i=1; i<encoding_table.length; i++) { var_map+=' v:'+i+',a:'+i; }
+    } else {
+        // Only one audio for the moment...
+        var_map += 'a:0,agroup:a0,default:0';
+        for (i=0; i<encoding_table.length; i++) { var_map+=' v:'+i+',agroup:a0' }
+    }
+    
+    data += write_opt('var_stream_map',var_map+'\'',tee);
+    
+    data += write_opt('hls_segment_filename','\'http://p-ep'+document.getElementById('hls_stream_id').value +     
                                              '.i.akamaientrypoint.net/' + 
                                              (document.getElementById('hls_package_type').selectedIndex==0?'cmaf/':'') + 
                                              document.getElementById('hls_stream_id').value + '/' +
-                                             document.getElementById('hls_stream_name').value + '/\'$timestamp/stream%v_%05d.m4s',tee);
+                                             document.getElementById('hls_stream_name').value + '/\'$timestamp/stream%v_%05d.'+ext,tee);
         
     data += write_opt('master_pl_name','master.m3u8',tee);
         
@@ -542,7 +558,11 @@ function output_more_than_one() {
     if (document.getElementById('hlsoutput_id').checked) count++;
     if (document.getElementById('multicastoutput_id').checked) count++;
     return (count>1)
-}    
+} 
+
+function in_hlsmuxed_mode() {
+    return (document.getElementById('hls_package_type').selectedIndex==2 && document.getElementById('hlsoutput_id').checked)
+}
     
 // ********************************************************************************************************************	
     
@@ -582,10 +602,16 @@ function rebuild_command() {
     };
     command += "\\\n";
     
+    // Hack for HLS (muxed segment mode)...      
+    // Multiple maps to create audios
+    for (i=0; i<(in_hlsmuxed_mode()?encoding_table.length:1); i++) { 
+        command += "-map 0:a:0 "; 
+    };
+    command += "\\\n";
+    
     var keyframe = Math.round(eval(document.getElementById('inputframerate_id').value));
     
-    command += "-map 0:a:0 \\\n" +
-               "\\\n" +
+    command += "\\\n" +
                "-g:v "+keyframe+" -keyint_min:v "+keyframe+" -sc_threshold:v 0 \\\n" +
                "\\\n" +
                "-color_primaries bt709 -color_trc bt709 -colorspace bt709 \\\n" +
@@ -826,8 +852,8 @@ function rebuild_command() {
                         </select>
                        </td></tr>
                 <tr><td>EP type</td><td><select><option selected>Akamai</option></select></td></tr>
-                <tr><td>Stream ID</td><td><input type="text" id="cmaf_stream_id" onChange="update_cmaf_ep();" value="stream"></td></tr>
-                <tr><td>Event name</td><td><input type="text" id="cmaf_stream_name" onChange="update_cmaf_ep();" value="event"></td></tr>
+                <tr><td>Stream ID</td><td><input type="text" id="cmaf_stream_id" onChange="update_cmaf_ep();" value="&lt;stream&gt;"></td></tr>
+                <tr><td>Event name</td><td><input type="text" id="cmaf_stream_name" onChange="update_cmaf_ep();" value="&lt;event&gt;"></td></tr>
                 <tr><td>Entrypoint</td><td colspan="3"><input class="lg-edit" type="text" id="cmaf_stream_ep" onChange="rebuild_command();" value=""></td></tr>
             </table>
         </div>
@@ -841,12 +867,13 @@ function rebuild_command() {
                 <tr><td>Packaging</td>
                     <td colspan=3><select id="hls_package_type" onChange="update_hls_ep();">
                         <option selected>HLS (cmaf)</option>
-                        <option>HLS (ts)</option>
+                        <option>HLS (ts) - discrete</option>
+                        <option>HLS (ts) - muxed</option>
                         </select>
                        </td></tr>
                 <tr><td>EP type</td><td><select><option selected>Akamai</option></select></td></tr>
-                <tr><td>Stream ID</td><td><input type="text" id="hls_stream_id" onChange="update_hls_ep();" value="stream"></td></tr>
-                <tr><td>Event name</td><td><input type="text" id="hls_stream_name" onChange="update_hls_ep();" value="event"></td></tr>
+                <tr><td>Stream ID</td><td><input type="text" id="hls_stream_id" onChange="update_hls_ep();" value="&lt;stream&gt;"></td></tr>
+                <tr><td>Event name</td><td><input type="text" id="hls_stream_name" onChange="update_hls_ep();" value="&lt;event&gt;"></td></tr>
                 <tr><td>Entrypoint</td><td colspan="3"><input class="lg-edit" type="text" id="hls_stream_ep" onChange="rebuild_command();" value=""></td></tr>
             </table>
         </div>
