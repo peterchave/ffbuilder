@@ -28,6 +28,12 @@
                  flex-direction: row;
                  flex-wrap: wrap;
                  width: 100%; }
+    a          { color: black; }
+    .modal{position:fixed;top:0;left:0;bottom:0;right:0;display:none;overflow:auto;background-color:#000;background-color:rgba(0,0,0,.7);z-index:9999}
+    .modal-window{position:relative;background-color:#fff;width:50%;margin:10% auto;padding:20px}
+    .close{position:absolute;top:0;right:0;color:rgba(0,0,0,.3);height:30px;width:30px;font-size:30px;line-height:30px;text-align:center}
+    .close:hover,.close:focus{color:#000;cursor:pointer}
+    .open{display:block}
 </style>
 </head>
 
@@ -39,7 +45,7 @@ var RELEASE_NOTES = [
     {   version:    "0.3h",
         features: [ "Added audio only support mode, remove all video renditions to enable",
                     "Moved scaling to filter_complex due to performance improvement vs inline scaling",
-                    "Added deinterlace filters",
+                    "Added deinterlace filter (bob-weave)",
                     "Added maxrate to video encodes for HLS compliance",
                     "Added RTMP input and output with multi-stream support",
                     "Added constant bitrate modes",
@@ -52,7 +58,7 @@ var RELEASE_NOTES = [
         features: [ "Multiple outputs selectable, enables tee pseudo muxer",
                     "Remove rtmp output (temp)",
                     "Added use_fifo for hls muxer to avoid issue with mpegs stuttering",
-                    "Note: more than one video causes issues when HLS+MPEGTS are enabled together" ] },
+                    "More than one video encode causes issues when HLS+MPEGTS are enabled together" ] },
 
     {   version:    "0.3e",
         features: [ "Added mpegts input, using ignore error flags and large fifo",
@@ -509,6 +515,7 @@ function output_cmaf(tee) {
         data += write_opt('utc_timing_url','\'http://time.akamai.com?iso&amp;ms\'',tee);
         data += write_opt('format_options','\'movflags=cmaf\'',tee);    
         //data += write_opt('export_side_data','prft',tee); // Not supported in 4.3.2 on Mac. Is supported from source in Ubuntu?
+        data += write_opt('timeout', '0.5', tee);
         data += write_opt('write_prft','1',tee);
         data += write_opt('target_latency','\'3.0\'',tee);
     }
@@ -737,15 +744,48 @@ function rebuild_command() {
     
 	document.getElementById("cmd_div").value = command;
 }	
-	
+
+// RELEASE NOTES
+function write_release_notes() {
+    var rt = "<h3>Release notes</h3>" +
+             "<p>This tool is tested against ffmpeg version 4.3 or higher<br/>" +
+             "Use of overlays requires drawfilter to be enabled in ffmpeg</p>"
+        
+    RELEASE_NOTES.forEach(release => {
+        rt += "<h4>rev: "+release.version+"</h4><ul>";
+        release.features.forEach(feature => {
+            rt += "<li>"+feature+"</li>";
+        })
+        rt += "</ul>"
+    })
+    document.getElementById('releasenotes').innerHTML = rt;
+    document.getElementById('version').innerHTML = "("+VERSION+")";
+}
+ 
+function showreleasenotes() {
+    document.getElementById('ReleaseNotes').classList.add('open');
+}   
+
+function hidereleasenotes() {
+    var modal = document.querySelector('[class="modal open"]');
+    modal.classList.remove('open');
+}    
 </script>	
 
 <!-- UI ===================================================================--->    
     
 <body>
-    <h1>FFMPEG command line builder <script>document.write("("+VERSION+")")</script></h1>
-    This tool is tested against ffmpeg version 4.3 or higher
-
+    <h1>FFMPEG command line builder <span id="version"></span></h1>
+    
+    <a href="#" onclick="showreleasenotes()">Release notes</a>
+    <div id="ReleaseNotes" class="modal" onclick="hidereleasenotes()">
+        <div class="modal-window">
+            <span class="close">&times;</span>
+            <span id='releasenotes'></span>
+        </div>
+    </div>
+    <script>write_release_notes();</script>
+    
     <div class='row'>
     <div class='col'>
         
@@ -791,7 +831,6 @@ function rebuild_command() {
     <!-- Filter section ------------------------------------------------------>		
 	<div id="filters">
 	<h3>Filters</h3>
-        Use of overlays requires drawfilter to be enabled in ffmpeg
         <table><tr><td style="vertical-align: top">
         
             <!-- Deinterlace filters --->
