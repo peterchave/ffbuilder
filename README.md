@@ -12,7 +12,6 @@ Many options have been optimized for use with Akamai Media Services Live ingest.
 The output of the tool is script you can run from a Linux/Mac shell, others have adapted the output to Windows batch script.
 
 Page can be run from anywhere, should work in most browsers. Predominately tested in Chrome. 
-Hosted version can be found here:
 
 This tool has been used to build and maintain industry reference streams for DASH-IF and was recently used by a European public broadcaster to build backup services for their TV and radio channels.
 
