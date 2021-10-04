@@ -20,7 +20,7 @@ This tool has been used to build and maintain industry reference streams for DAS
 
 ## Things on the todo list
 
-Add option to format script in windows batch script
-Build better RTMP input options
-Add HEVC/AV1/etc support
-Enable more ingest point formats
+- Add option to format script in windows batch script
+- Build better RTMP input options
+- Add HEVC/AV1/etc support
+- Enable more ingest point formats
