@@ -7,7 +7,6 @@ It also supports RTMP and MPEG-TS over UDP as input and output methods.
 
 The tool provides a simple interactive way to see how to build up an FFMPEG command.
 As you select options on the left, the required command line syntax is added to script on the right.
-Many options have been optimized for use with Akamai Media Services Live ingest.
 
 The output of the tool is script you can run from a Linux/Mac shell, others have adapted the output to Windows batch script.
 
