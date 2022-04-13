@@ -1,0 +1,70 @@
+---
+- name: Install packages for ffmpeg, npm and pm2
+  hosts: all
+  tasks:
+  - name: Add ffmpeg4 repo
+    become: yes
+    ansible.builtin.apt_repository:
+      repo: ppa:savoury1/ffmpeg4
+      
+  - name: Add graphics repo
+    become: yes
+    ansible.builtin.apt_repository:
+      repo: ppa:savoury1/graphics
+      
+  - name: Add multimedia repo
+    become: yes
+    ansible.builtin.apt_repository:
+      repo: ppa:savoury1/multimedia   
+      
+  - name: Update repositories cache and install ffmpeg, npm and fonts-freefont-ttf
+    become: yes
+    apt:
+      pkg:
+      - ffmpeg
+      - npm
+      - fonts-freefont-ttf
+      update_cache: yes  
+      
+  - name: Install pm2 node.js package globally.
+    become: yes
+    community.general.npm:
+      name: pm2
+      global: yes
+
+  - name: Fetch media used as input to encoder
+    ansible.builtin.shell: "wget {{ media }}"
+
+  - name: Fetch script to run encoder
+    ansible.builtin.shell: "curl -s {{ script }} > script.sh"
+    
+  - name: Make script executable
+    ansible.builtin.shell: "chmod +x script.sh"
+
+  - name: Start script with pm2
+    ansible.builtin.shell: "pm2 start -f script.sh"
+
+  - name: Save pm2 state
+    ansible.builtin.shell: "pm2 save"
+
+  - name: Write startup script
+    ansible.builtin.shell: "pm2 startup | tail -n 1 > startup.sh"
+  
+  - name: Make startup script executable
+    ansible.builtin.shell: "chmod +x startup.sh"    
+      
+  - name: Run startup script
+    ansible.builtin.shell: "./startup.sh"   
+    
+  - name: Enable log rotation
+    ansible.builtin.shell: "pm2 install pm2-logrotate"
+    
+  - name: Limit logs last 10 files
+    ansible.builtin.shell: "pm2 set pm2-logrotate:retain 10" 
+    
+  - name: Create job to restart pm2 at 1am nightly
+    ansible.builtin.cron:
+      name: "restart nightly at 1am"
+      minute: "0"
+      hour: "1"
+      job: "/usr/bin/node /usr/local/bin/pm2 restart all"
