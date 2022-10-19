@@ -35,10 +35,10 @@ chmod +x script.sh
 sed -i "1 a\ $3" script.sh
 
 # Run the script within pm2, making it start on boot, restart failure
+#pm2 install pm2-logrotate
+#pm2 set pm2-logrotate:retain 10
 pm2 start -f script.sh
-pm2 save
-pm2 startup
-pm2 install pm2-logrotate
-pm2 set pm2-logrotate:retain 10
+#pm2 save
+#pm2 startup
 
 # Set a cron task to restart the encoder every night at 1am
