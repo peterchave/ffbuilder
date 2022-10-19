@@ -5,6 +5,10 @@ if [ "$#" -ne 3 ]
     exit
 fi
 
+echo Script: $1
+echo Media: $2
+echo Environment: $3
+
 # Add repos for ffmpeg, graphics and multimedia
 sudo add-apt-repository -y ppa:savoury1/ffmpeg4
 sudo add-apt-repository -y ppa:savoury1/graphics
@@ -28,7 +32,7 @@ curl -s $1 > script.sh
 chmod +x script.sh
 
 # Modify the script with user supplied environment variables (like stream id, event name, entrypoint, etc)
-sed -i "1 a\$3" script.sh
+sed -i "1 a\ $3" script.sh
 
 # Run the script within pm2, making it start on boot, restart failure
 pm2 start -f script.sh
