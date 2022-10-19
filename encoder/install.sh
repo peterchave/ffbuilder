@@ -38,7 +38,7 @@ sed -i "1 a\ $3" script.sh
 export PM2_HOME=/root/.pm2
 #pm2 install pm2-logrotate
 #pm2 set pm2-logrotate:retain 10
-pm2 start -f script.sh & disown
+pm2 start -f script.sh
 #pm2 save
 #pm2 startup
 
