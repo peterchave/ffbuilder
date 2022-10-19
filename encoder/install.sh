@@ -30,9 +30,7 @@ sed -i '1 a\$3' script.sh
 # Run the script within pm2, making it start on boot, restart failure
 pm2 start -f script.sh
 pm2 save
-pm2 startup | tail -n 1 > startup.sh
-chmod +x startup.sh
-./startup.sh
+pm2 startup
 pm2 install pm2-logrotate
 pm2 set pm2-logrotate:retain 10
 
