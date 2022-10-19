@@ -17,6 +17,9 @@ sudo apt-get -y install ffmpeg npm fonts-freefont-ttf
 # Install PM2 (from npm)
 npm install -g pm2
 
+# Change directory to install location (default /root)
+cd /root
+
 # Download test file to be used by the script (specified as a 2nd parameter)
 wget $2
 
