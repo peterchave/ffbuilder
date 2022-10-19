@@ -25,7 +25,7 @@ curl -s $1 > script.sh
 chmod +x script.sh
 
 # Modify the script with user supplied environment variables (like stream id, event name, entrypoint, etc)
-sed -i '1 a\$3' script.sh
+sed -i "1 a\$3" script.sh
 
 # Run the script within pm2, making it start on boot, restart failure
 pm2 start -f script.sh
