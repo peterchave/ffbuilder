@@ -5,6 +5,8 @@ if [ "$#" -ne 3 ]
     exit
 fi
 
+set -m
+
 echo Script: $1
 echo Media: $2
 echo Environment: $3
