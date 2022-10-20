@@ -42,3 +42,4 @@ pm2 save
 pm2 startup
 
 # Set a cron task to restart the encoder every night at 1am
+crontab -l | { cat; echo "0 1 * * * /usr/bin/node /usr/local/bin/pm2 restart all"; } | crontab -
