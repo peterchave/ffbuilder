@@ -36,12 +36,21 @@ chmod +x script.sh
 # Modify the script with user supplied environment variables (like stream id, event name, entrypoint, etc)
 sed -i "1 a\ $3" script.sh
 
-# Run the script within pm2, making it start on boot, restart failure
+# Run the script within pm2, making it start on boot, restart on failure
+
+# Install and setup log rotation
 pm2 install pm2-logrotate
 pm2 set pm2-logrotate:retain 10
+# Start script.sh inside pm2
 pm2 start -f script.sh
+# Save running state of pm2
 pm2 save
-pm2 startup
+# Install systemd scripts to manage pm2
+pm2 startup - u root
+# Kill current pm2 daemon
+pm2 kill
+# Start daemon using systemd, so it will survive StackScript termination
+systemctl start pm2-root
 
 # Set a cron task to restart the encoder every night at 1am
 crontab -l | { cat; echo "0 1 * * * /usr/bin/node /usr/local/bin/pm2 restart all"; } | crontab -
