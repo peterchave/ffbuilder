@@ -8,7 +8,7 @@ It also supports RTMP and MPEG-TS over UDP as input and output methods.
 The tool provides a simple interactive way to see how to build up an FFMPEG command.
 As you select options on the left, the required command line syntax is added to script on the right.
 
-The output of the tool is script you can run from a Linux/Mac shell, others have adapted the output to Windows batch script.
+The output of the tool is script you can run from either a Linux/Mac shell or as Windows Batch script.
 
 Page can be run from anywhere, should work in most browsers. Predominately tested in Chrome. 
 
@@ -20,7 +20,6 @@ This tool has been used to build and maintain industry reference streams for DAS
 
 ## Things on the todo list
 
-- Add option to format script in windows batch script
 - Build better RTMP input options
 - Add HEVC/AV1/etc support
 - Enable more ingest server formats
