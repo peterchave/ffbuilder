@@ -46,7 +46,7 @@ pm2 start -f script.sh
 # Save running state of pm2
 pm2 save
 # Install systemd scripts to manage pm2
-pm2 startup - u root
+pm2 startup -u root
 # Kill current pm2 daemon
 pm2 kill
 # Start daemon using systemd, so it will survive StackScript termination
